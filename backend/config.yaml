@@ -1,2 +1,5 @@
-LLM:
-  test: "This is a test configuration."
+llm:
+  select: ollama_api
+  ollama_api:
+    model: "maho"
+    base_url: "http://localhost:11434"

@@ -1,12 +1,15 @@
 from fastapi import FastAPI, WebSocket
 from core.handler.ws_handler import WSHandler
-from core.core import BaseAmadeus
+from core.Amadeus import BaseAmadeus
 
 app = FastAPI()
-ws_handler = WSHandler()
 
 if __name__ == "__main__":
+    ws_handler = WSHandler()
     Amadeus = BaseAmadeus()
+    # 示例用法
+    for token in Amadeus.llm.generate("你好"):
+        print(token, end="", flush=True)
 
     @app.websocket("/ws")
     async def websocket_endpoint(websocket: WebSocket):
