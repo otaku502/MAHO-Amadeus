@@ -3,3 +3,13 @@ llm:
   ollama_api:
     model: "maho"
     base_url: "http://localhost:11434"
+
+tts:
+  select: gpt_sovits_api
+  gpt_sovits_api:
+    base_url: "http://127.0.0.1:9880"
+    refer_wav_path: "C:\\Users\\19045\\Desktop\\MAHO\\backend\\data\\TTS-audio\\激动.wav"
+    prompt_text: "あら、あなた。"
+    prompt_language: "ja"
+    default_text_language: "ja"
+    speed: 1.2

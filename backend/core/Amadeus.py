@@ -1,7 +1,8 @@
 from pathlib import Path
-from queue import Queue
+import asyncio
 from core.util.config import load_yaml
 from core.component.llm.LLMService import LLM
+from core.component.tts.TTSService import TTS
 
 
 class BaseAmadeus:
@@ -13,5 +14,6 @@ class BaseAmadeus:
         config_path = Path("config.yaml")
         self.config = load_yaml(config_path)
         self.llm = LLM(self.config.get("llm", {}))
+        self.tts = TTS(self.config.get("tts", {}))
 
-        self.message_queue = Queue()  # 用于存储消息的队列
+        self.message_queue = asyncio.Queue()  # 使用 asyncio.Queue 以支持异步操作
