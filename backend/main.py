@@ -34,5 +34,12 @@ async def websocket_endpoint(websocket: WebSocket):
     await ws_handler.handle_ws(websocket, Amadeus)
 
 if __name__ == "__main__":
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run(
+        "main:app", 
+        host="0.0.0.0", 
+        port=8000, 
+        reload=True,
+        ws_ping_interval=300,  # 设置心跳间隔为 300 秒
+        ws_ping_timeout=300    # 设置心跳超时为 300 秒
+    )
     # uvicorn backend.main:app --host 0.0.0.0 --port 8000 --workers 4
