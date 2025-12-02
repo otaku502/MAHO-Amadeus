@@ -1,9 +1,15 @@
+from core.auth.login import AuthManager
 from starlette.websockets import WebSocketDisconnect
 import logging
 import asyncio
 import re
 import json
 import base64
+from pathlib import Path
+import sys
+
+# 添加项目根路径
+sys.path.append(str(Path(__file__).parent.parent.parent))
 
 
 class WSHandler():
@@ -13,39 +19,33 @@ class WSHandler():
     """
 
     def __init__(self):
-        pass
+        self.auth_manager = AuthManager()  # 用于验证 WebSocket 消息中的 token
 
     async def handle_ws(self, websocket, Amadeus):
+        """
+        最主要的 WebSocket 处理逻辑
+        """
         await websocket.accept()  # 必须先接受连接
-        
+        logging.info("WebSocket 连接已接受")
+
         # 启动两个处理任务：一个处理字符流，一个处理句子TTS
-        char_task = asyncio.create_task(self.process_char_queue(Amadeus, websocket))
-        sentence_task = asyncio.create_task(self.process_sentence_queue(Amadeus, websocket))
-        
+        char_task = asyncio.create_task(
+            self.process_char_queue(Amadeus, websocket))
+        sentence_task = asyncio.create_task(
+            self.process_sentence_queue(Amadeus, websocket))
+
         try:
             while True:
                 data = await websocket.receive_text()
-                # 发送开始标签
-                await websocket.send_text(json.dumps({"type": "start"}))
-                logging.info(f"成功收到: {data}")
+                msg = json.loads(data)
+                logging.info(f"收到消息: {msg}")
 
-                # 更新用户上下文
-                Amadeus.context_window.append({"role": "user", "content": data})
-
-                full_response = ""
-                async for response in Amadeus.llm.generate(Amadeus.context_window):
-                    full_response += response
-                    await Amadeus.message_queue.put(response)
-                
-                # 更新助手上下文
-                Amadeus.context_window.append({"role": "assistant", "content": full_response})
-
-                # 等待两个队列都处理完毕
-                await Amadeus.message_queue.join()
-                await Amadeus.sentence_queue.join()
-                
-                # 发送结束标签
-                await websocket.send_text(json.dumps({"type": "end"}))
+                if msg.get("type") == "chat":
+                    token = msg.get("token")
+                    if not token or not self.auth_manager.verify_token(token):
+                        await websocket.send_text(json.dumps({"type": "error", "msg": "未授权，请先登录"}))
+                        continue
+                    await self.handle_chat(websocket, Amadeus, msg.get("data"))
         except WebSocketDisconnect:
             logging.info("WebSocket 已断开")
         finally:
@@ -57,6 +57,33 @@ class WSHandler():
                 await sentence_task
             except asyncio.CancelledError:
                 pass
+
+    async def handle_chat(self, websocket, Amadeus, user_text):
+        """
+        聊天处理逻辑，分离出来，便于扩展 handle_ws，毕竟保不齐以后我又有啥奇怪的需求
+        """
+        # 发送开始标签
+        await websocket.send_text(json.dumps({"type": "start"}))
+        logging.info(f"成功收到: {user_text}")
+
+        # 更新用户上下文
+        Amadeus.context_window.append({"role": "user", "content": user_text})
+
+        full_response = ""
+        async for response in Amadeus.llm.generate(Amadeus.context_window):
+            full_response += response
+            await Amadeus.message_queue.put(response)
+
+        # 更新助手上下文
+        Amadeus.context_window.append(
+            {"role": "assistant", "content": full_response})
+
+        # 等待两个队列都处理完毕
+        await Amadeus.message_queue.join()
+        await Amadeus.sentence_queue.join()
+
+        # 发送结束标签
+        await websocket.send_text(json.dumps({"type": "end"}))
 
     async def process_char_queue(self, Amadeus, websocket):
         """
@@ -78,7 +105,7 @@ class WSHandler():
                 # 发送字符流（带标签）
                 await websocket.send_text(json.dumps({"type": "text", "data": char}))
                 buffer += char
-                
+
                 # 检查是否形成完整句子
                 if sentence_endings.search(char):
                     sentence = buffer.strip()
@@ -101,7 +128,7 @@ class WSHandler():
         while True:
             try:
                 sentence = await Amadeus.sentence_queue.get()
-                
+
                 loop = asyncio.get_event_loop()
                 # 翻译成日语
                 ja_sentence = await loop.run_in_executor(None, Amadeus.translator.translate, sentence)
@@ -113,20 +140,20 @@ class WSHandler():
                     # 分片发送音频，避免超过 WebSocket 消息大小限制
                     CHUNK_SIZE = 30 * 1024  # 30KB, 是 3 的倍数
                     total_len = len(audio_data)
-                    
+
                     for i in range(0, total_len, CHUNK_SIZE):
                         chunk_data = audio_data[i:i + CHUNK_SIZE]
                         chunk_b64 = base64.b64encode(chunk_data).decode()
                         await websocket.send_text(json.dumps({
-                            "type": "audio", 
+                            "type": "audio",
                             "data": chunk_b64,
                             "is_final": (i + CHUNK_SIZE >= total_len)
                         }))
-                    
+
                     logging.info(f"已分片发送音频数据，总长度: {total_len}")
                 else:
                     logging.warning("TTS 生成失败")
-                
+
                 Amadeus.sentence_queue.task_done()
 
             except asyncio.CancelledError:

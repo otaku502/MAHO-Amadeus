@@ -11,10 +11,10 @@
 import illustration from './illustration.vue'
 import dialogBox from './dialogBox.vue'
 import { onMounted } from 'vue'
-import { useHomeStore } from '@/stores/home'
+import { useWsStore } from '@/stores/ws'
 import { storeToRefs } from 'pinia'
-const homeStore = useHomeStore()
-const { audioQueue, wsStatus } = storeToRefs(homeStore)
+const wsStore = useWsStore()
+const { audioQueue, wsStatus } = storeToRefs(wsStore)
 
 const playAudio = (blob) => {
   return new Promise((resolve) => {
@@ -39,8 +39,8 @@ const playAudio = (blob) => {
 const processAudioQueue = async () => {
   let audioBuffer = ''
   while (true) {
-    if (audioQueue.length > 0) {
-      const chunk = audioQueue.shift()
+    if (audioQueue.value.length > 0) {
+      const chunk = audioQueue.value.shift()
       if (chunk) {
         audioBuffer += chunk.data
         if (chunk.is_final) {

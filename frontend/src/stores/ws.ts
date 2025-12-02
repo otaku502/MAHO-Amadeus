@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 
-export const useHomeStore = defineStore('home', () => {
+export const useWsStore = defineStore('ws', () => {
   // 队列1：字符流（type: 'text'）
   const textQueue = ref<string[]>([])
   const audioQueue = ref<{ data: string, is_final: boolean }[]>([])
@@ -10,7 +10,7 @@ export const useHomeStore = defineStore('home', () => {
   const wsStatus = ref('closed')
   let WS: WebSocket | null = null
   let reconnectTimer: number | null = null // 重连定时器
-  const userName = ref('Guest')
+  const userName = ref(localStorage.getItem('username') || '未命名')
   const amadeusName = ref('比屋定真帆')
   const currentName = ref(userName.value)
 
@@ -44,6 +44,9 @@ export const useHomeStore = defineStore('home', () => {
           case 'end':
             currentName.value = userName.value
             isWaiting.value = false
+            break
+          default:
+            console.warn('未知的消息类型:', msg.type, msg)
             break
         }
       } catch (e) {

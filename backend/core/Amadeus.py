@@ -22,3 +22,4 @@ class BaseAmadeus:
         self.sentence_queue = asyncio.Queue()  # 句子队列，用于 TTS 处理
         self.user = {}  # 用户信息
         self.context_window = []  # 上下文窗口
+        self.context_window_index = 0  # 上下文窗口索引，每次前端获取上下文窗口就更新这个索引

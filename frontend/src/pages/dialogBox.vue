@@ -14,7 +14,7 @@
 
 <script setup lang="js">
 import meswinName from '@/component/meswinName.vue';
-import { useHomeStore } from '@/stores/home';
+import { useWsStore } from '@/stores/ws';
 import { ref, onMounted, nextTick } from 'vue'
 import { storeToRefs } from 'pinia'
 import CenterRevealMask from '../component/CenterRevealMask.vue'
@@ -22,9 +22,9 @@ import SpritePlayer from '../component/SpritePlayer.vue'
 // @ts-ignore
 import getCaretCoordinates from 'textarea-caret';
 
-const homeStore = useHomeStore()
-const { textQueue, isWaiting, currentName } = storeToRefs(homeStore)
-const WS = homeStore.WS
+const wsStore = useWsStore()
+const { textQueue, isWaiting, currentName } = storeToRefs(wsStore)
+const WS = wsStore.WS
 const showMask = ref(false)
 
 const dialogText = ref('');
@@ -47,7 +47,7 @@ function sendTextToWS(e) {
     e.preventDefault(); // 阻止默认的换行行为
     const message = dialogText.value.trim();
     if (message) {
-      WS.send(JSON.stringify({ type: 'user_input', data: message }));
+      WS.send(JSON.stringify({ type: 'chat', data: message, token: localStorage.getItem('token') }));
       dialogText.value = ''; // 发送后清空输入框
     }
   }

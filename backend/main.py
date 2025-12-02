@@ -1,11 +1,12 @@
-from fastapi import FastAPI, WebSocket
+from fastapi import FastAPI, WebSocket, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
 from core.handler.ws_handler import WSHandler
 from core.Amadeus import BaseAmadeus
+from core.auth.login import AuthManager
 import uvicorn
 import logging
 import colorlog
-
-app = FastAPI()
 
 # 日志配置，只需在主文件配置一次即可
 handler = colorlog.StreamHandler()
@@ -25,7 +26,60 @@ logging.basicConfig(
     handlers=[handler]
 )
 
+app = FastAPI()
+
+# 添加 CORS 中间件，允许前端跨域请求
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # 生产环境请修改为具体域名
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# 实例化认证管理器
+auth_manager = AuthManager()
+
+# 请求体模型
+class LoginRequest(BaseModel):
+    username: str
+    password: str
+
+class VerifyRequest(BaseModel):
+    token: str
+
 ws_handler = WSHandler()
+
+@app.post("/api/login")
+async def login(request: LoginRequest):
+    """
+    用户登录接口
+    """
+    if auth_manager.verify_user(request.username, request.password):
+        token = auth_manager.pack_token(request.username)
+        logging.info(f"用户 {request.username} 登录成功")
+        return {
+            "success": True,
+            "token": token,
+            "username": request.username
+        }
+    else:
+        logging.warning(f"用户 {request.username} 登录失败")
+        raise HTTPException(status_code=401, detail="用户名或密码错误")
+
+@app.post("/api/verify")
+async def verify_token(request: VerifyRequest):
+    """
+    验证 token 有效性接口
+    """
+    user_info = auth_manager.verify_token(request.token)
+    if user_info:
+        return {
+            "valid": True,
+            "username": user_info.get("username")
+        }
+    else:
+        raise HTTPException(status_code=401, detail="Token 无效")
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
@@ -38,7 +92,7 @@ if __name__ == "__main__":
         "main:app", 
         host="0.0.0.0", 
         port=8080, 
-        reload=True,
+        reload=False,
         ws_ping_interval=300,  # 设置心跳间隔为 300 秒
         ws_ping_timeout=300    # 设置心跳超时为 300 秒
     )
