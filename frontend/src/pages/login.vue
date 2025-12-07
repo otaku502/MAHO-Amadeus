@@ -1,7 +1,7 @@
 <template>
-  <audio ref="bgm" src="/login.mp3" autoplay loop></audio>
+  <audio ref="bgm" :src="loginMp3" autoplay loop></audio>
   <div class="login">
-    <SpritePlayer class="logo" src="/sprite_logo.png" :rows="6" :columns="7" :fps="20" :width="logoSize"
+    <SpritePlayer class="logo" :src="spriteLogo" :rows="6" :columns="7" :fps="20" :width="logoSize"
       :height="logoSize" :totalFrames="38" :loop="1" />
     <div class="input-group">
       <div class="input-text">
@@ -15,7 +15,7 @@
         </div>
       </div>
       <button class="amadeus-btn" @click="login">
-        <img src="/login_button.png" alt="登录" class="btn-img" />
+        <img :src="loginButton" alt="登录" class="btn-img" />
       </button>
     </div>
     <p v-if="errorMsg" class="error">{{ errorMsg }}</p>
@@ -27,6 +27,9 @@ import SpritePlayer from '../component/SpritePlayer.vue'
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import config from '../config.json'
+import loginMp3 from '@/assets/login/login.mp3'
+import spriteLogo from '@/assets/sprite/sprite_logo.png'
+import loginButton from '@/assets/login/login_button.png'
 
 const router = useRouter()
 const username = ref('')

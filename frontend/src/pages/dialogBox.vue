@@ -1,11 +1,11 @@
 <template>
   <div>
     <CenterRevealMask :visible="showMask">
-      <img src="/meswin.png" alt="图片丢失" class="bg">
+      <img :src="meswinImg" alt="图片丢失" class="bg">
       <meswinName :name="currentName" class="Meswinname" />
       <textarea :readonly="isWaiting" name="dialog-textarea" id="dialog-textarea" class="dialog-textarea"
         v-model="dialogText" @keyup="sendTextToWS" ref="textareaRef"></textarea>
-      <SpritePlayer v-if="!isWaiting" src="/ring.png" :rows="12" :columns="5" :fps="45" :width="spriteSize"
+      <SpritePlayer v-if="!isWaiting" :src="ringImg" :rows="12" :columns="5" :fps="45" :width="spriteSize"
         :height="spriteSize" :totalFrames="60" :loop="0"
         :style="{ position: 'fixed', left: caretX + 'px', top: caretY + 'px', pointerEvents: 'none', zIndex: 9999 }" />
     </CenterRevealMask>
@@ -21,6 +21,8 @@ import CenterRevealMask from '../component/CenterRevealMask.vue'
 import SpritePlayer from '../component/SpritePlayer.vue'
 // @ts-ignore
 import getCaretCoordinates from 'textarea-caret';
+import meswinImg from '@/assets/meswin/meswin.png'
+import ringImg from '@/assets/sprite/ring.png'
 
 const wsStore = useWsStore()
 const { textQueue, isWaiting, currentName } = storeToRefs(wsStore)

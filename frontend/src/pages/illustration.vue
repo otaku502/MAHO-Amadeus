@@ -23,7 +23,7 @@ onMounted(async () => {
   bunny.anchor.set(0.5)
   bunny.x = app.screen.width / 2
   bunny.y = app.screen.height / 1.8
-  bunny.scale.set(0.35)
+  bunny.scale.set(0.2)
   app.stage.addChild(bunny)
 
   // 动画

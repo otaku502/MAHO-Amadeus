@@ -1,12 +1,15 @@
 <template>
   <div class="meswinname">
-    <img src="/meswinLeft.png" alt="">
+    <img :src="meswinLeft" alt="">
     <h4>{{ name }}</h4>
-    <img src="/meswinRight.png" alt="">
+    <img :src="meswinRight" alt="">
   </div>
 </template>
 
 <script setup>
+import meswinLeft from '@/assets/meswin/meswinLeft.png'
+import meswinRight from '@/assets/meswin/meswinRight.png'
+
 defineProps({
   name: String
 })

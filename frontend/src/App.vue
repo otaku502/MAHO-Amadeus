@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import './assets/reset.css'
+import './assets/styles/reset.css'
 </script>
 
 <template>
