@@ -84,7 +84,7 @@ function closeMask() {
 }
 
 window.addEventListener('keydown', (e) => {
-  if (e.key.toLowerCase() === 'h') {
+  if (e.key.toLowerCase() === 'h' && e.shiftKey) {
     if (showMask.value) {
       closeMask();
     } else {

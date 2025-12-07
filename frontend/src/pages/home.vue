@@ -2,7 +2,7 @@
   <div class="home-page">
     <div v-if="wsStatus !== 'connected'" class="ws-status-tip">WebSocket连接失效，正在尝试连接...</div>
     <dialogBox class="dialog" />
-    <illustration class="illustrat" />
+    <illustration ref="illustrationRef" class="illustrat" />
     <div class="meswin-bg"></div>
   </div>
 </template>
@@ -10,29 +10,78 @@
 <script setup>
 import illustration from './illustration.vue'
 import dialogBox from './dialogBox.vue'
-import { onMounted } from 'vue'
+import { onMounted, ref } from 'vue'
 import { useWsStore } from '@/stores/ws'
 import { storeToRefs } from 'pinia'
 const wsStore = useWsStore()
 const { audioQueue, wsStatus } = storeToRefs(wsStore)
+const illustrationRef = ref(null)
+
+// 音频上下文和分析器
+let audioContext = null
+let analyser = null
+let dataArray = null
+
+const initAudioContext = () => {
+  if (!audioContext) {
+    audioContext = new (window.AudioContext || window.webkitAudioContext)()
+    analyser = audioContext.createAnalyser()
+    analyser.fftSize = 256
+    dataArray = new Uint8Array(analyser.frequencyBinCount)
+  }
+}
 
 const playAudio = (blob) => {
-  return new Promise((resolve) => {
-    const url = URL.createObjectURL(blob)
-    const audio = new Audio(url)
-    audio.onended = () => {
-      URL.revokeObjectURL(url)
+  return new Promise(async (resolve) => {
+    initAudioContext()
+    if (audioContext.state === 'suspended') {
+      await audioContext.resume()
+    }
+
+    const arrayBuffer = await blob.arrayBuffer()
+    const audioBuffer = await audioContext.decodeAudioData(arrayBuffer)
+    
+    const source = audioContext.createBufferSource()
+    source.buffer = audioBuffer
+    source.connect(analyser)
+    analyser.connect(audioContext.destination)
+
+    let animationId
+    const updateLipSync = () => {
+      if (!analyser) return
+      analyser.getByteFrequencyData(dataArray)
+      
+      // 计算平均音量
+      let sum = 0
+      for (let i = 0; i < dataArray.length; i++) {
+        sum += dataArray[i]
+      }
+      const average = sum / dataArray.length
+      
+      // 增加门限防止一直张嘴 (底噪过滤)
+      const threshold = 10
+      let value = 0
+      if (average > threshold) {
+        value = Math.min(1, ((average - threshold) / (255 - threshold)) * 3.0)
+      }
+      
+      if (illustrationRef.value) {
+        illustrationRef.value.setMouthOpen(value)
+      }
+      
+      animationId = requestAnimationFrame(updateLipSync)
+    }
+
+    source.onended = () => {
+      cancelAnimationFrame(animationId)
+      if (illustrationRef.value) {
+        illustrationRef.value.setMouthOpen(0) // 播放结束闭嘴
+      }
       resolve()
     }
-    audio.onerror = (e) => {
-      console.error('Audio playback error:', e)
-      URL.revokeObjectURL(url)
-      resolve()
-    }
-    audio.play().catch(e => {
-      console.error('Play failed:', e)
-      resolve()
-    })
+
+    updateLipSync()
+    source.start(0)
   })
 }
 

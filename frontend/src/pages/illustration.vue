@@ -3,9 +3,22 @@
 </template>
 
 <script setup>
-import { onMounted } from 'vue'
+import { onMounted, defineExpose } from 'vue'
 import * as PIXI from 'pixi.js'
 import * as TWEEN from '@tweenjs/tween.js'
+
+let currentParams = null
+let mouthOpenIndex = -1
+
+const setMouthOpen = (value) => {
+  if (currentParams && mouthOpenIndex !== -1) {
+    currentParams[mouthOpenIndex] = value
+  }
+}
+
+defineExpose({
+  setMouthOpen
+})
 
 onMounted(async () => {
   window.PIXI = PIXI
@@ -71,6 +84,11 @@ onMounted(async () => {
     const coreModel = model.internalModel.coreModel
     const paramIds = coreModel._parameterIds
     const params = coreModel._model.parameters.values
+    
+    // 更新全局引用
+    currentParams = params
+    mouthOpenIndex = paramIds.indexOf('ParamMouthOpenY')
+    
     console.log('模型参数列表:', paramIds)
 
     // tween动画组
