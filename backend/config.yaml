@@ -23,5 +23,5 @@ translator:
     to_lang: "ja"  # 目标语言，默认日语
   ollama_translator: # 本地 Ollama LLM 翻译服务，使用小参数量模型追求速度
     model: "qwen2.5:0.5b"  # 小模型，推理速度快
-    base_url: "http://localhost:11434"  # 复用主端口，需配置 OLLAMA_MAX_LOADED_MODELS=2
+    base_url: "http://localhost:11435"  # 使用独立端口，需单独启动一个 Ollama 实例
 
