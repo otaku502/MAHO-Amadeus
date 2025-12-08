@@ -1,4 +1,10 @@
 fastapi
-uvicorn
+uvicorn[standard]
 pydantic
+PyYAML
 colorlog
+aiohttp
+requests
+argostranslate
+langdetect
+websockets

@@ -15,10 +15,13 @@ tts:
     speed: 1.2
 
 translator:
-  select: baidu_api
+  select: ollama_translator
   baidu_api:
-    appid: "20251129002508470"
-    appkey: "0zK0AZwp2hCmbiOoAtCI"
+    appid: ""
+    appkey: ""
   argos_api: # 本地部署的argos翻译服务，第一次使用需要先联网下载模型
     to_lang: "ja"  # 目标语言，默认日语
+  ollama_translator: # 本地 Ollama LLM 翻译服务，使用小参数量模型追求速度
+    model: "qwen2.5:0.5b"  # 小模型，推理速度快
+    base_url: "http://localhost:11434"  # 复用主端口，需配置 OLLAMA_MAX_LOADED_MODELS=2
 

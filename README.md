@@ -4,57 +4,80 @@
 
 MAHO-Amadeus 是一个灵感来源于《命运石之门》中阿玛丢斯系统的开源项目。目标是打造一个可扩展的虚拟角色交互框架，前端展示人物界面，用户可以与角色进行自然语言聊天。
 
-本项目分为前端和后端两部分：
+本项目分为前端和后端和模型：
 - **前端**：基于 Vue 3，负责角色形象展示、聊天界面交互。
 - **后端**：基于 Python，负责对话逻辑、模型推理、数据处理等。
+- **模型**: 一堆堆的模型服务，看个人喜好。
 
-## 快速开始
+## 部署
 
-1. 克隆仓库
+### 前端部署 (Frontend)
+1. **环境准备**：安装 Node.js (推荐 v18+)。
+2. **安装依赖**：
+   ```bash
+   cd frontend
+   npm install
+   ```
+3. **启动开发服务器**：
+   ```bash
+   npm run dev
+   ```
+这里我是习惯直接从发服务器启动，你喜欢的话也可以自己编译出来用，具体的话去看vue教程。
 
-2. 安装依赖（前端、后端）
+### 后端部署 (Backend)
+1. **环境准备**：安装 Python 3.10+。
+2. **安装依赖**：
+   ```bash
+   cd backend
+   pip install -r requirements.txt
+   ```
+3. **核心配置与扩展**：
+   项目后端采用**组件化架构**，LLM、TTS、翻译等核心功能均可自由切换。修改 `backend/config.yaml` 即可灵活配置：
+   核心代码位于backend\core\component\
+   
+   *   **模块化切换**：通过修改各板块的 `select` 字段（如 `ollama_api`, `gpt_sovits_api`）一键切换不同服务提供商。
+   *   **LLM 配置**：默认支持 Ollama，可扩展接入 ChatGPT 等其他 API。
+   *   **TTS 配置**：支持 GPT-SoVITS，可配置参考音频、语速等。
+   *   **翻译配置**：支持多源切换（Ollama 本地大模型、百度 API、Argos 离线翻译）。
+   
+   > **特别提示**：若同时使用 Ollama 进行聊天(LLM)和翻译(Translator)，请务必设置环境变量 `OLLAMA_MAX_LOADED_MODELS=2` 并重启 Ollama，以防止模型反复加载导致显存冲突。
+4. **启动服务**：
+   ```bash
+   python main.py
+   ```
 
-3. 启动后端服务
+### LLM
+[模型下载（基于qwen-14B微调）](https://www.modelscope.cn/models/bysq2006/maho-llm/files)
+下载qwen3-14b.Q4_K_M.gguf 和 Modelfile
+Modelfile 是用于配置和管理大语言模型（LLM）参数的文件，qwen3-14b.Q4_K_M.gguf是模型。下载后，你可以按照以下步骤使用：
 
-4. 启动前端界面
+1. 将 `Modelfile` 文件与 `qwen3-14b.Q4_K_M.gguf` 放在同一目录下。
+2. 根据你的推理框架（如 Ollama、llama.cpp 等），在启动模型时指定 `Modelfile` 路径。例如，使用 Ollama 时可以运行：
 
----
+  ```bash
+  ollama create maho-llm -f ./Modelfile
+  ```
+3. 按照框架文档进一步配置和启动模型服务。
 
-# 本地tts和llm启动流程
+确保 `Modelfile` 中的参数与你的模型文件和硬件环境相匹配。具体配置说明可参考 [Ollama 官方文档](https://github.com/jmorganca/ollama/blob/main/docs/modelfile.md) 或相关推理框架的文档。
 
-## TTS（语音合成）服务启动流程
 
-本项目支持对接 [GPT-SoVITS](https://github.com/RVC-Boss/GPT-SoVITS) 作为后端 TTS（文本转语音）服务，实现虚拟角色的声音克隆。
+### TTS
+[模型和环境下载](https://www.modelscope.cn/models/bysq2006/maho-tts/files)
+在里面下载GPT-SoVITS-v2pro-20250604.zip
+然后解压到喜欢的位置，
 
-**启动流程简述：**
+这里面自带了运行时环境./runtime/python.exe
+解压好之后直接
 
-1. 前往 GPT-SoVITS 官方仓库下载并部署环境。
-2. 准备好 SoVITS 和 GPT 语音模型权重，以及参考音频和文本。
-3. 在 GPT-SoVITS 项目根目录下，使用如下命令启动 API 服务：
-	```bash
-	python api.py -dr "参考音频.wav" -dt "参考音频文本" -dl zh
-	```
-4. 启动后，TTS 服务会监听指定端口（默认 9880），可通过 HTTP 请求进行语音合成。
-5. MAHO 后端可通过 HTTP 调用 TTS 服务，实现角色语音回复。
-
-详细配置和模型训练请参考 [GPT-SoVITS 官方文档](https://github.com/RVC-Boss/GPT-SoVITS)。
-
----
-
-## 便携环境快速启动（免安装依赖）
-
-如果你下载的是 GPT-SoVITS 项目整合包，项目自带了一个 `runtime` 文件夹，里面包含了完整的 Python 便携环境。
-
-你可以直接用这个环境启动 API 服务，无需安装 Anaconda 或 pip 依赖：
-
-```powershell
-cd D:\bysq_D\GPT-SoVITS-v2pro-20250604
+cd 你的解压路径\GPT-SoVITS-v2pro-20250604
 ./runtime/python.exe api.py -s SoVITS_weights_v2Pro/maho_e8_s528.pth -g GPT_weights_v2Pro/maho-e15.ckpt
-```
 
-这样可以直接启动，无需任何额外配置。
+即可启动本地TTS
 
-如果你用的是 WebUI，`go-webui.bat` 也是调用的这个 runtime 环境。
+### 翻译（有LLM底层的，也有基于argos的，这里用LLM）
+
+
 
 ---
 
