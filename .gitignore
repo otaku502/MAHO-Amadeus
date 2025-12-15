@@ -21,6 +21,7 @@ dist/
 build/
 *.spec
 backend/models/*
+!backend/models/.gitkeep
 
 # -------------------
 # Node / Frontend (Global safeguards)
