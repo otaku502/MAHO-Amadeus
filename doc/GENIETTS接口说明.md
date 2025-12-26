@@ -16,6 +16,8 @@ GenieData.zip
 TTS-maho.zip
 这个是ONNX模型文件，是一个目录。
 
+**两个目录要解压**
+
 ### 1. 复制模型文件
 
 将以下目录复制到 `backend/models/` 下：
