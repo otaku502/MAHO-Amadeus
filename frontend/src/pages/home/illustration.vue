@@ -3,22 +3,17 @@
 </template>
 
 <script setup>
-import { onMounted, defineExpose } from 'vue'
+import { onMounted, watch } from 'vue'
 import * as PIXI from 'pixi.js'
 import * as TWEEN from '@tweenjs/tween.js'
+import { useHomeStore } from '@/stores/home'
+import { storeToRefs } from 'pinia'
+
+const homeStore = useHomeStore()
+const { mouthOpen } = storeToRefs(homeStore)
 
 let currentParams = null
 let mouthOpenIndex = -1
-
-const setMouthOpen = (value) => {
-  if (currentParams && mouthOpenIndex !== -1) {
-    currentParams[mouthOpenIndex] = value
-  }
-}
-
-defineExpose({
-  setMouthOpen
-})
 
 onMounted(async () => {
   window.PIXI = PIXI
@@ -136,6 +131,13 @@ onMounted(async () => {
 
   // 初始创建模型
   let model = await createModel()
+
+  // 监听嘴部张开状态
+  watch(mouthOpen, (newValue) => {
+    if (currentParams && mouthOpenIndex !== -1) {
+      currentParams[mouthOpenIndex] = newValue
+    }
+  })
 
   // 添加键盘开关(按 'T' 键切换鼠标跟踪)
   window.addEventListener('keydown', async (e) => {

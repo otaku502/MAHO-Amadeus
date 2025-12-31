@@ -9,118 +9,41 @@
       </div>
       <!-- 可以在这里继续添加更多按钮 -->
     </div>
-    <dialogBox class="dialog" />
-    <illustration ref="illustrationRef" class="illustrat" />
+    <dialogBox 
+      class="dialog" 
+      :currentName="currentName"
+      :videoMode="buttonStates.video"
+      :thinkText="thinkText"
+      :isWaiting="isWaiting"
+      :textQueue="textQueue"
+      @send="send"
+    />
+    <illustration class="illustrat" />
   </div>
 </template>
 
 <script setup>
 import illustration from './illustration.vue'
 import dialogBox from './dialogBox/dialogBox.vue'
-import { onMounted, ref } from 'vue'
+import { onMounted } from 'vue'
 import { useHomeStore } from '@/stores/home'
 import { useVADStore } from '@/stores/vad'
 import { storeToRefs } from 'pinia'
+import { useLipSyncAudio } from '@/composables/useLipSyncAudio'
+
 const homeStore = useHomeStore()
 const vadStore = useVADStore()
-const { audioQueue, wsStatus, buttonStates } = storeToRefs(homeStore)
+const { audioQueue, wsStatus, buttonStates, textQueue, thinkText, isWaiting, currentName } = storeToRefs(homeStore)
+const { send } = homeStore
 const { getAudioContext } = vadStore
-const illustrationRef = ref(null)
 
-// 音频分析器
-let analyser = null
-let dataArray = null
-
-const initAudioContext = () => {
-  const audioContext = getAudioContext()
-  if (!analyser) {
-    analyser = audioContext.createAnalyser()
-    analyser.fftSize = 256
-    dataArray = new Uint8Array(analyser.frequencyBinCount)
+const { processAudioQueue } = useLipSyncAudio(
+  audioQueue,
+  getAudioContext,
+  (value) => {
+    homeStore.mouthOpen = value
   }
-  return audioContext
-}
-
-const playAudio = (blob) => {
-  return new Promise(async (resolve) => {
-    const audioContext = initAudioContext()
-
-    const arrayBuffer = await blob.arrayBuffer()
-    const audioBuffer = await audioContext.decodeAudioData(arrayBuffer)
-
-    const source = audioContext.createBufferSource()
-    source.buffer = audioBuffer
-    source.connect(analyser)
-    analyser.connect(audioContext.destination)
-
-    let animationId
-    const updateLipSync = () => {
-      if (!analyser) return
-      analyser.getByteFrequencyData(dataArray)
-
-      // 计算平均音量
-      let sum = 0
-      for (let i = 0; i < dataArray.length; i++) {
-        sum += dataArray[i]
-      }
-      const average = sum / dataArray.length
-
-      // 增加门限防止一直张嘴 (底噪过滤)
-      const threshold = 10
-      let value = 0
-      if (average > threshold) {
-        value = Math.min(1, ((average - threshold) / (255 - threshold)) * 3.0)
-      }
-
-      if (illustrationRef.value) {
-        illustrationRef.value.setMouthOpen(value)
-      }
-
-      animationId = requestAnimationFrame(updateLipSync)
-    }
-
-    source.onended = () => {
-      cancelAnimationFrame(animationId)
-      if (illustrationRef.value) {
-        illustrationRef.value.setMouthOpen(0) // 播放结束闭嘴
-      }
-      resolve()
-    }
-
-    updateLipSync()
-    source.start(0)
-  })
-}
-
-const processAudioQueue = async () => {
-  let audioBuffer = ''
-  while (true) {
-    if (audioQueue.value.length > 0) {
-      const chunk = audioQueue.value.shift()
-      if (chunk) {
-        audioBuffer += chunk.data
-        if (chunk.is_final) {
-          try {
-            const binaryString = window.atob(audioBuffer)
-            const len = binaryString.length
-            const bytes = new Uint8Array(len)
-            for (let i = 0; i < len; i++) {
-              bytes[i] = binaryString.charCodeAt(i)
-            }
-            const blob = new Blob([bytes], { type: 'audio/wav' })
-            await playAudio(blob)
-          } catch (error) {
-            console.error('音频播放失败:', error)
-          } finally {
-            audioBuffer = ''
-          }
-        }
-      }
-    } else {
-      await new Promise(resolve => setTimeout(resolve, 100))
-    }
-  }
-}
+)
 
 onMounted(() => {
   processAudioQueue()
